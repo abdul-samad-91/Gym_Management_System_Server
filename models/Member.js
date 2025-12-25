@@ -90,8 +90,21 @@ const memberSchema = new mongoose.Schema({
 memberSchema.pre('save', async function(next) {
   console.log('Generating member ID...');
   if (!this.memberId) {
-    const count = await mongoose.model('Member').countDocuments();
-    this.memberId = `GYM${String(count + 1).padStart(5, '0')}`;
+    const Member = mongoose.model('Member');
+    
+    // Find the highest existing memberId
+    const lastMember = await Member.findOne({}, { memberId: 1 })
+      .sort({ memberId: -1 })
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (lastMember && lastMember.memberId) {
+      // Extract number from memberId (e.g., "GYM00002" -> 2)
+      const lastNumber = parseInt(lastMember.memberId.replace('GYM', ''));
+      nextNumber = lastNumber + 1;
+    }
+    
+    this.memberId = `GYM${String(nextNumber).padStart(5, '0')}`;
   }
   next();
 });

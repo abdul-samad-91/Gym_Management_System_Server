@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const trainerSchema = new mongoose.Schema({
   trainerId: {
     type: String,
-    required: true,
+    // required: true,
     unique: true
   },
   fullName: {
@@ -81,8 +81,21 @@ const trainerSchema = new mongoose.Schema({
 // Generate unique trainer ID
 trainerSchema.pre('save', async function(next) {
   if (!this.trainerId) {
-    const count = await mongoose.model('Trainer').countDocuments();
-    this.trainerId = `TRN${String(count + 1).padStart(5, '0')}`;
+    const Trainer = mongoose.model('Trainer');
+    
+    // Find the highest existing trainerId
+    const lastTrainer = await Trainer.findOne({}, { trainerId: 1 })
+      .sort({ trainerId: -1 })
+      .limit(1);
+    
+    let nextNumber = 1;
+    if (lastTrainer && lastTrainer.trainerId) {
+      // Extract number from trainerId (e.g., "TRN00002" -> 2)
+      const lastNumber = parseInt(lastTrainer.trainerId.replace('TRN', ''));
+      nextNumber = lastNumber + 1;
+    }
+    
+    this.trainerId = `TRN${String(nextNumber).padStart(5, '0')}`;
   }
   next();
 });

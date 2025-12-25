@@ -69,6 +69,8 @@ export const createTrainer = async (req, res) => {
     }
     
     const trainer = await Trainer.create(trainerData);
+    // const trainer = new Trainer(trainerData);
+    // await trainer.save();
     
     res.status(201).json({
       success: true,

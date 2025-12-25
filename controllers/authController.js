@@ -61,6 +61,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
+    console.log(req.body);
 
     // Validate input
     if (!username || !password) {
@@ -108,6 +109,7 @@ export const login = async (req, res) => {
       }
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       success: false,
       message: error.message

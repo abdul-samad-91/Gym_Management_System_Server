@@ -2,6 +2,7 @@ import Member from '../models/Member.js';
 import Plan from '../models/Plan.js';
 import Attendance from '../models/Attendance.js';
 import Payment from '../models/Payment.js';
+import Trainer from '../models/Trainer.js';
 
 // Get all members
 export const getMembers = async (req, res) => {
@@ -104,6 +105,14 @@ export const createMember = async (req, res) => {
     const member =  new Member(memberData);
     await member.save();
     
+    // If a trainer is assigned, add member to trainer's assignedMembers array
+    if (memberData.assignedTrainer) {
+      await Trainer.findByIdAndUpdate(
+        memberData.assignedTrainer,
+        { $addToSet: { assignedMembers: member._id } }
+      );
+    }
+    
     res.status(201).json({
       success: true,
       message: 'Member registered successfully',
@@ -128,17 +137,42 @@ export const updateMember = async (req, res) => {
       updateData.photo = `/uploads/${req.file.filename}`;
     }
     
+    // Get the old member data to check if trainer changed
+    const oldMember = await Member.findById(req.params.id);
+    if (!oldMember) {
+      return res.status(404).json({
+        success: false,
+        message: 'Member not found'
+      });
+    }
+    
+    // Update the member
     const member = await Member.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     ).populate('currentPlan').populate('assignedTrainer');
     
-    if (!member) {
-      return res.status(404).json({
-        success: false,
-        message: 'Member not found'
-      });
+    // Handle trainer assignment changes
+    const oldTrainerId = oldMember.assignedTrainer?.toString();
+    const newTrainerId = updateData.assignedTrainer;
+    
+    if (oldTrainerId !== newTrainerId) {
+      // Remove member from old trainer's assignedMembers
+      if (oldTrainerId) {
+        await Trainer.findByIdAndUpdate(
+          oldTrainerId,
+          { $pull: { assignedMembers: member._id } }
+        );
+      }
+      
+      // Add member to new trainer's assignedMembers
+      if (newTrainerId) {
+        await Trainer.findByIdAndUpdate(
+          newTrainerId,
+          { $addToSet: { assignedMembers: member._id } }
+        );
+      }
     }
     
     res.status(200).json({
@@ -157,7 +191,7 @@ export const updateMember = async (req, res) => {
 // Delete member
 export const deleteMember = async (req, res) => {
   try {
-    const member = await Member.findByIdAndDelete(req.params.id);
+    const member = await Member.findById(req.params.id);
     
     if (!member) {
       return res.status(404).json({
@@ -165,6 +199,16 @@ export const deleteMember = async (req, res) => {
         message: 'Member not found'
       });
     }
+    
+    // Remove member from trainer's assignedMembers if assigned
+    if (member.assignedTrainer) {
+      await Trainer.findByIdAndUpdate(
+        member.assignedTrainer,
+        { $pull: { assignedMembers: member._id } }
+      );
+    }
+    
+    await member.deleteOne();
     
     res.status(200).json({
       success: true,
