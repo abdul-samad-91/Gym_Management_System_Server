@@ -19,7 +19,9 @@ router.use(protect);
 
 router.route('/')
   .get(getMembers)
-  .post(upload.single('photo'), createMember);
+  .post(
+    // upload.single('photo'), 
+    createMember);
 
 router.route('/:id')
   .get(getMember)

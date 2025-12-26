@@ -25,6 +25,16 @@ const trainerSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
+  // assignedTrainer: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: 'Trainer'
+  // },
+
+  // Price:{
+  // type: Number,
+  // required: false
+  // },
+
   address: {
     street: String,
     city: String,

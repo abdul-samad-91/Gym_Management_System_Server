@@ -69,6 +69,10 @@ const memberSchema = new mongoose.Schema({
     ref: 'Trainer',
     default: null
   },
+  assignedPlans: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Plan'
+  }],
   biometricId: {
     type: String,
     unique: true,

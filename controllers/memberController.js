@@ -4,6 +4,15 @@ import Attendance from '../models/Attendance.js';
 import Payment from '../models/Payment.js';
 import Trainer from '../models/Trainer.js';
 
+const parsePossibleJson = (value) => {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch (err) {
+    return value;
+  }
+};
+
 // Get all members
 export const getMembers = async (req, res) => {
   try {
@@ -95,9 +104,46 @@ export const getMember = async (req, res) => {
 // Create member
 export const createMember = async (req, res) => {
   try {
-    const memberData = req.body;
+    const memberData = { ...req.body };
+
+    // Normalize empty strings to null for optional fields
+    if (memberData.currentPlan === '') {
+      memberData.currentPlan = null;
+    }
+    if (memberData.assignedTrainer === '') {
+      memberData.assignedTrainer = null;
+    }
+
+    // Auto-set plan dates if a plan is selected during creation
+    if (memberData.currentPlan) {
+      const plan = await Plan.findById(memberData.currentPlan);
+      if (!plan) {
+        return res.status(404).json({
+          success: false,
+          message: 'Plan not found'
+        });
+      }
+
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + plan.getDurationInDays());
+
+      memberData.planStartDate = startDate;
+      memberData.planEndDate = endDate;
+      memberData.membershipStatus = 'Active';
+
+      const assignedPlans = Array.isArray(memberData.assignedPlans)
+        ? memberData.assignedPlans.map(String)
+        : [];
+
+      if (!assignedPlans.includes(plan._id.toString())) {
+        assignedPlans.push(plan._id);
+      }
+
+      memberData.assignedPlans = assignedPlans;
+    }
     
-    // Handle photo upload
+    // Handle photo upload (if multipart is used in future)
     if (req.file) {
       memberData.photo = `/uploads/${req.file.filename}`;
     }
@@ -119,7 +165,7 @@ export const createMember = async (req, res) => {
       data: member
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -130,9 +176,17 @@ export const createMember = async (req, res) => {
 // Update member
 export const updateMember = async (req, res) => {
   try {
-    const updateData = req.body;
+    const updateData = { ...req.body };
+
+    // Normalize empty strings to null for optional fields
+    if (updateData.currentPlan === '') {
+      updateData.currentPlan = null;
+    }
+    if (updateData.assignedTrainer === '') {
+      updateData.assignedTrainer = null;
+    }
     
-    // Handle photo upload
+    // Handle photo upload (if multipart is used in future)
     if (req.file) {
       updateData.photo = `/uploads/${req.file.filename}`;
     }
@@ -145,6 +199,35 @@ export const updateMember = async (req, res) => {
         message: 'Member not found'
       });
     }
+
+    // Update plan dates when plan changes
+    if (updateData.currentPlan && updateData.currentPlan !== oldMember.currentPlan?.toString()) {
+      const plan = await Plan.findById(updateData.currentPlan);
+      if (!plan) {
+        return res.status(404).json({
+          success: false,
+          message: 'Plan not found'
+        });
+      }
+
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + plan.getDurationInDays());
+
+      updateData.planStartDate = startDate;
+      updateData.planEndDate = endDate;
+      updateData.membershipStatus = 'Active';
+
+      const assignedPlans = Array.isArray(updateData.assignedPlans)
+        ? updateData.assignedPlans.map(String)
+        : oldMember.assignedPlans.map((planId) => planId.toString());
+
+      if (!assignedPlans.includes(plan._id.toString())) {
+        assignedPlans.push(plan._id);
+      }
+
+      updateData.assignedPlans = assignedPlans;
+    }
     
     // Update the member
     const member = await Member.findByIdAndUpdate(
@@ -155,7 +238,7 @@ export const updateMember = async (req, res) => {
     
     // Handle trainer assignment changes
     const oldTrainerId = oldMember.assignedTrainer?.toString();
-    const newTrainerId = updateData.assignedTrainer;
+    const newTrainerId = updateData.assignedTrainer; 
     
     if (oldTrainerId !== newTrainerId) {
       // Remove member from old trainer's assignedMembers
