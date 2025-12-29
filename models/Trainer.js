@@ -20,20 +20,23 @@ const trainerSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Phone number is required']
   },
-  email: {
-    type: String,
-    trim: true,
-    lowercase: true
+
+   price:{
+  type: Number,
+  required: false
   },
+
+  // email: {
+  //   type: String,
+  //   trim: true,
+  //   lowercase: true
+  // },
   // assignedTrainer: {
   //   type: mongoose.Schema.Types.ObjectId,
   //   ref: 'Trainer'
   // },
 
-  // Price:{
-  // type: Number,
-  // required: false
-  // },
+ 
 
   address: {
     street: String,
