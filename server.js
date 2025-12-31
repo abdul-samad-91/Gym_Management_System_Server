@@ -36,6 +36,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/gym_manag
   .then(() => console.log('✅ MongoDB connected successfully'))
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 
+app.get("/" , (req , res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+})
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/members', memberRoutes);
