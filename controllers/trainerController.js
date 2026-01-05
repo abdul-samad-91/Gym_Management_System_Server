@@ -1,5 +1,8 @@
 import Trainer from '../models/Trainer.js';
 import Member from '../models/Member.js';
+import upload from '../middleware/upload.js';
+import cloudinary from '../config/cloudinary.js';
+import multer from 'multer';
 
 // Get all trainers
 export const getTrainers = async (req, res) => {
@@ -62,25 +65,33 @@ export const getTrainer = async (req, res) => {
 export const createTrainer = async (req, res) => {
   try {
     const trainerData = req.body;
-    
-    // Handle photo upload
+
     if (req.file) {
-      trainerData.photo = `/uploads/${req.file.filename}`;
+      // Upload file to Cloudinary using stream (for memory storage)
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: "trainers" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        ).end(req.file.buffer);
+      });
+      trainerData.photo = result.secure_url; // save Cloudinary URL
     }
-    
+
     const trainer = await Trainer.create(trainerData);
-    // const trainer = new Trainer(trainerData);
-    // await trainer.save();
-    
+
     res.status(201).json({
       success: true,
-      message: 'Trainer created successfully',
-      data: trainer
+      message: "Trainer created successfully",
+      data: trainer,
     });
   } catch (error) {
+    console.error("Error creating trainer:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -91,10 +102,25 @@ export const updateTrainer = async (req, res) => {
     const updateData = req.body;
     
     // Handle photo upload
-    if (req.file) {
-      updateData.photo = `/uploads/${req.file.filename}`;
-    }
+    // if (req.file) {
+    //   updateData.photo = `/uploads/${req.file.filename}`;
+    // }
     
+    // Photo upload to Cloudinary using stream (for memory storage)
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: "trainers" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        ).end(req.file.buffer);
+      });
+      updateData.photo = result.secure_url;
+    }
+
+
     const trainer = await Trainer.findByIdAndUpdate(
       req.params.id,
       updateData,
