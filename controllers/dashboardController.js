@@ -116,7 +116,8 @@ export const getDashboardStats = async (req, res) => {
     const recentMembers = await Member.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .select('memberId fullName photo membershipStatus joinDate');
+      .select('memberId fullName photo membershipStatus joinDate currentPlan')
+      .populate('currentPlan', 'planName');
     
     const recentPayments = await Payment.find({ paymentStatus: 'Paid' })
       .sort({ paymentDate: -1 })
