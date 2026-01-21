@@ -18,7 +18,11 @@ const attendanceSchema = new mongoose.Schema({
   date: {
     type: Date,
     required: true,
-    default: () => new Date().setHours(0, 0, 0, 0)
+    default: () => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
   },
   attendanceType: {
     type: String,

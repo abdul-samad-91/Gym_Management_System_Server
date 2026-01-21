@@ -16,13 +16,18 @@ const parsePossibleJson = (value) => {
 // Get all members
 export const getMembers = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 10 } = req.query;
+    const { status, search, currentPlan, page = 1, limit = 10 } = req.query;
     
     let query = {};
     
     // Filter by status
     if (status && status !== 'All') {
       query.membershipStatus = status;
+    }
+    
+    // Filter by plan
+    if (currentPlan && currentPlan !== 'All') {
+      query.currentPlan = currentPlan;
     }
     
     // Search functionality

@@ -24,7 +24,8 @@ export const markAttendance = async (req, res) => {
     }
     
     // Check if already checked in today
-    const today = new Date().setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const existingAttendance = await Attendance.findOne({
       member: memberId,
       date: today
@@ -106,7 +107,8 @@ export const markCheckout = async (req, res) => {
 // Get today's attendance
 export const getTodayAttendance = async (req, res) => {
   try {
-    const today = new Date().setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     const attendance = await Attendance.find({ date: today })
       .populate('member', 'memberId fullName photo currentPlan')
@@ -137,8 +139,10 @@ export const getAttendanceByDateRange = async (req, res) => {
       });
     }
     
-    const start = new Date(startDate).setHours(0, 0, 0, 0);
-    const end = new Date(endDate).setHours(23, 59, 59, 999);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
     
     const attendance = await Attendance.find({
       date: { $gte: start, $lte: end }
