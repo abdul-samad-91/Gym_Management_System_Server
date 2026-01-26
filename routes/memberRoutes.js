@@ -8,7 +8,8 @@ import {
   assignPlan,
   renewMembership,
   updateMembershipStatus,
-  getExpiringMemberships
+  getExpiringMemberships,
+  updatePaymentStatus
 } from '../controllers/memberController.js';
 import { protect } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
@@ -32,6 +33,7 @@ router.post('/assign-plan', assignPlan);
 router.post('/renew', renewMembership);
 router.put('/status', updateMembershipStatus);
 router.get('/expiring/list', getExpiringMemberships);
+router.patch('/payments/:paymentId', updatePaymentStatus);
 
 export default router;
 

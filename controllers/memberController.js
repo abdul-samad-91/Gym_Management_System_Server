@@ -16,7 +16,7 @@ const parsePossibleJson = (value) => {
 // Get all members
 export const getMembers = async (req, res) => {
   try {
-    const { status, search, currentPlan, page = 1, limit = 10 } = req.query;
+    const { status, search, currentPlan, page = 1, limit = 1000 } = req.query;
     
     let query = {};
     
@@ -110,6 +110,10 @@ export const getMember = async (req, res) => {
 export const createMember = async (req, res) => {
   try {
     const memberData = { ...req.body };
+    const { payment } = req.body;
+
+    // Remove payment from memberData as it's not a member field
+    delete memberData.payment;
 
     // Normalize empty strings to null for optional fields
     if (memberData.currentPlan === '') {
@@ -163,11 +167,37 @@ export const createMember = async (req, res) => {
         { $addToSet: { assignedMembers: member._id } }
       );
     }
+
+    // Create payment record if plan is selected and payment data exists
+    let paymentRecord = null;
+    if (memberData.currentPlan && payment) {
+      const plan = await Plan.findById(memberData.currentPlan);
+      const months = parseFloat(payment.months) || 1;
+      const monthlyAmount = parseFloat(payment.amount) || 0;
+      const totalAmount = months * monthlyAmount;
+      const paidAmount = parseFloat(payment.fullPayment) || 0;
+      const remaining = parseFloat(payment.remaining) || 0;
+
+      paymentRecord = await Payment.create({
+        member: member._id,
+        plan: memberData.currentPlan,
+        amount: totalAmount,
+        discount: 0,
+        finalAmount: paidAmount,
+        paymentMethod: payment.paymentMethod || 'Cash',
+        paymentStatus: payment.paymentStatus || 'Paid',
+        receivedBy: req.user.id,
+        notes: `Payment for ${months} month(s) - Monthly: Rs ${monthlyAmount}, Total: Rs ${totalAmount}, Paid: Rs ${paidAmount}, Remaining: Rs ${remaining}`
+      });
+    }
     
     res.status(201).json({
       success: true,
       message: 'Member registered successfully',
-      data: member
+      data: {
+        member,
+        payment: paymentRecord
+      }
     });
   } catch (error) {
     // console.log(error);
@@ -485,3 +515,33 @@ export const getExpiringMemberships = async (req, res) => {
   }
 };
 
+// Update payment status
+export const updatePaymentStatus = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const { paymentStatus } = req.body;
+
+    const payment = await Payment.findById(paymentId);
+    
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    payment.paymentStatus = paymentStatus;
+    await payment.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment status updated successfully',
+      data: payment
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

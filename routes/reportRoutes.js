@@ -6,7 +6,8 @@ import {
   getPlanReport,
   getTrainerReport,
   getExpiryAlertReport,
-  getDailySummary
+  getDailySummary,
+  updatePaymentStatus
 } from '../controllers/reportController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -21,6 +22,7 @@ router.get('/plans', getPlanReport);
 router.get('/trainers', getTrainerReport);
 router.get('/expiry-alerts', getExpiryAlertReport);
 router.get('/daily-summary', getDailySummary);
+router.put('/payments/:id/status', updatePaymentStatus);
 
 export default router;
 

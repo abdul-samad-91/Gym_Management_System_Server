@@ -69,6 +69,21 @@ export const getDashboardStats = async (req, res) => {
         }
       }
     ]);
+
+    // Pending payments
+    const pendingPayments = await Payment.aggregate([
+      {
+        $match: {
+          paymentStatus: { $in: ['Pending', 'Partial'] }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$finalAmount' }
+        }
+      }
+    ]);
     
     // Expiring memberships (next 7 days)
     const nextWeek = new Date(today);
@@ -119,11 +134,14 @@ export const getDashboardStats = async (req, res) => {
       .select('memberId fullName photo membershipStatus joinDate currentPlan')
       .populate('currentPlan', 'planName');
     
-    const recentPayments = await Payment.find({ paymentStatus: 'Paid' })
+      const recentPayments = await Payment.find()
       .sort({ paymentDate: -1 })
       .limit(5)
       .populate('member', 'memberId fullName')
       .populate('plan', 'planName');
+    
+    // Filter out payments where member has been deleted
+    const filteredRecentPayments = recentPayments.filter(payment => payment.member !== null);
     
     // Growth trend (last 6 months)
     const growthTrend = [];
@@ -180,12 +198,15 @@ export const getDashboardStats = async (req, res) => {
           today: todayRevenue[0]?.total || 0,
           monthly: monthlyRevenue[0]?.total || 0
         },
+        pending: {
+          total: pendingPayments[0]?.total || 0
+        },
         alerts: {
           expiringMemberships
         },
         planDistribution,
         recentMembers,
-        recentPayments,
+        recentPayments: filteredRecentPayments,
         growthTrend
       }
     });

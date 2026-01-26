@@ -4,6 +4,28 @@ import Payment from '../models/Payment.js';
 import Plan from '../models/Plan.js';
 import Trainer from '../models/Trainer.js';
 
+export const updatePaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status = 'Paid' } = req.body;
+
+    const payment = await Payment.findById(id);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    payment.paymentStatus = status;
+    if (status === 'Paid') {
+      payment.finalAmount = payment.amount;
+    }
+    await payment.save();
+
+    res.status(200).json({ success: true, data: payment });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Member reports
 export const getMemberReport = async (req, res) => {
   try {
